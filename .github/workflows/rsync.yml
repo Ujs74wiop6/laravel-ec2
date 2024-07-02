@@ -1,0 +1,41 @@
+name: Sync files
+
+on: push
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone ujs74wiop6/laravel-ec2 PUBLIC repository
+        uses: GuillaumeFalourd/clone-github-repo-action@main
+        with:
+          owner: 'ujs74wiop6'
+          branch: main
+          repository: 'laravel-ec2'
+          access-token: ${{ secrets.ACCESS_TOKEN }}
+          
+      - name: Deploy to server
+        id: deploy
+        uses: Pendect/action-rsyncer@v1.1.0
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        with:
+          flags: '-avzr'
+          options: ''
+          ssh_options: ''
+          src: 'laravel-ec2/'
+          dest: 'ubuntu@ujs74wiop6.ddns.net:/var/www/html/hdcevents'
+
+      - name: Update chmod
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: 'ujs74wiop6.ddns.net'
+          username: 'ubuntu'
+          key: ${{ secrets.DEPLOY_KEY }}
+          port: 22
+          command_timeout: 1m
+          script: | 
+            sudo chmod 777 -R /var/www/html/hdcevents
+      
+      - name: Display status from deploy
+        run: echo "${{ steps.deploy.outputs.status }}"
